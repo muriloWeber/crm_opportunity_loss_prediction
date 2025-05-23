@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+.Python
+.env
+venv/
+env/
+.ipynb_checkpoints/
+
+# Data
+data/
+*.csv
+*.json
+*.parquet
+*.pkl
+*.h5
+
+# IDEs
+.vscode/
+.idea/
+
+# Specific to project
+# Add any other large files or sensitive data here
