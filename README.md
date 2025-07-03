@@ -105,8 +105,6 @@ Esta seção investigou a dinâmica do tempo e do valor das oportunidades:
 
 ---
 
----
-
 ## 3. Data Preparation (Preparação dos Dados)
 
 Nesta fase, os dados foram transformados e limpos para serem adequados à modelagem preditiva, garantindo a qualidade e o formato necessário para os algoritmos de Machine Learning. As principais etapas realizadas foram:
