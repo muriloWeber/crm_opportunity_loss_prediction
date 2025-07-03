@@ -53,11 +53,11 @@ A análise exploratória revelou diversos padrões e fatores que podem estar ass
 
 Avaliamos como as características dos clientes impactam o desfecho das oportunidades:
 
-* **Setor:** Identificamos que **Finanças**, **Emprego** e **Telecomunicações** são os setores com as maiores taxas de perda de oportunidades. Em contraste, setores como o Governamental e de Educação apresentaram as menores taxas de perda.
+* **Setor:** Identificamos que **Finanças**, **Médico** e **Telecomunicações** são os setores com as maiores taxas de perda de oportunidades. Em contraste, setores como o Marketing e de Entretenimento apresentaram as menores taxas de perda.
 
 ![Gráfico da Taxa de Perda por Setor](images/taxa_perda_setor.png)
 
-* **Porte da Empresa (Faturamento e Número de Funcionários):** Contrário à intuição inicial, a análise mostrou que oportunidades com empresas de **faturamento e número de funcionários muito grandes** (quintil superior), assim como as **muito pequenas** (quintil inferior), tendem a apresentar taxas de perda ligeiramente mais elevadas do que as de porte médio. Isso sugere que ambos os extremos do espectro de clientes podem ter complexidades de venda distintas.
+* **Porte da Empresa (Faturamento e Número de Funcionários):** A análise revelou que as taxas de perda se mantêm **relativamente consistentes** entre os diferentes portes de empresa, variando em uma faixa estreita. No entanto, observamos uma tendência de taxas ligeiramente mais elevadas para empresas nos **segundo e quinto quintis** tanto de **faturamento quanto de número de funcionários**, indicando que esses segmentos específicos podem apresentar desafios distintos no ciclo de vendas.
 
 ![Taxa de Perda por Quintil de Faturamento e Número de Funcionários](images/taxa_perda_quintil_func_fat.png)
 
@@ -65,7 +65,7 @@ Avaliamos como as características dos clientes impactam o desfecho das oportuni
 
 Nesta seção, exploramos como as características dos produtos se relacionam com a perda de oportunidades:
 
-* **Produto e Série:** A taxa de perda varia entre os produtos, com o **"MG Advanced"** apresentando a maior taxa de perda (~30.45%), sugerindo que pode ser o mais desafiador de vender. As séries de produtos principais (**GTX** e **MG**) mostraram taxas de perda quase idênticas, indicando que a série em si não é um diferencial significativo na probabilidade de perda, mas sim o produto específico dentro da série.
+* **Produto e Série:** A taxa de perda varia entre os produtos, com o **"GTK 500"** apresentando a maior taxa de perda (~42.50%), sugerindo que pode ser o mais desafiador de vender. A série de produto principal **GTK** mostrou a maior taxa de perda (~42.50%), indicando que a série em si é pode ser um diferencial significativo na probabilidade de perda, assim como o produto específico dentro da série.
 
 ![Taxa de Perda por Produto](images/taxa_perda_produto.png)
 
@@ -77,15 +77,15 @@ Nesta seção, exploramos como as características dos produtos se relacionam co
 
 Avaliou-se o impacto do desempenho da equipe de vendas nas taxas de perda:
 
-* **Agente de Vendas (`sales_agent`):** Há uma **variação significativa no desempenho individual** dos agentes. Agentes como **Donn Cantrell (~42.55%)** e **Garret Kinder (~39.02%)** apresentaram taxas de perda notavelmente mais altas, indicando possíveis áreas para treinamento ou revisão de estratégias. Em contrapartida, agentes como **Wilburn Farren (~21.82%)** e **Hayden Neloms (~22.28%)** demonstraram performance superior, cujas melhores práticas poderiam ser replicadas.
+* **Agente de Vendas (`sales_agent`):** Há uma **variação significativa no desempenho individual** dos agentes. Agentes como **Lajuana Vencill (~43.09%)**, **Gladys Colclough (~42.59%)** e **Donn Cantrell (~42.55%)** apresentaram taxas de perda notavelmente mais altas, indicando possíveis áreas para treinamento ou revisão de estratégias. Em contrapartida, agentes como **Hayden Neloms (~30.20%)** e **Maureen Marcano (~32.98%)** demonstraram performance superior, cujas melhores práticas poderiam ser replicadas.
 
 ![Taxa de Perda por Agente](images/taxa_perda_agentes.png)
 
-* **Gerente (`manager`):** A maioria dos gerentes apresentou taxas de perda similares (entre 27% e 28%), mas **Rocco Neubert** se destacou com uma taxa visivelmente maior (~31.80%). Isso sugere que a equipe sob sua gerência pode enfrentar desafios específicos ou que suas abordagens necessitam de reavaliação.
+* **Gerente (`manager`):** A maioria dos gerentes apresentou taxas de perda similares (entre 35.68% e 37.64%), mas **Rocco Neubert** se destacou com a maior (~38.36%). Isso sugere que a equipe sob sua gerência pode enfrentar desafios específicos ou que suas abordagens necessitam de reavaliação.
 
 ![Taxa de Perda por Gerente](images/taxa_perda_gerentes.png)
 
-* **Escritório Regional (`regional_office`):** A região **East (Leste)** apresentou a maior taxa de perda (~29.99%), enquanto a região **West (Oeste)** teve a menor (~27.06%). Essa disparidade regional pode indicar a influência de fatores locais como concorrência ou características de mercado.
+* **Escritório Regional (`regional_office`):** A região **East (Leste)** apresentou a maior taxa de perda (~37.49%), enquanto a região **West (Oeste)** teve a menor (~35.90%). Essa disparidade regional pode indicar a influência de fatores locais como concorrência ou características de mercado.
 
 ![Taxa de Perda por Escritorio](images/taxa_perda_regiao.png)
 
@@ -97,9 +97,11 @@ Esta seção investigou a dinâmica do tempo e do valor das oportunidades:
 
 ![Distribuição Duração Op Perdidas vs Não perdidas](images/box_plot_duracao.png)
 
-* **Valor da Oportunidade (`close_value`):** O dataset registra um `close_value` de `0.0` para todas as oportunidades perdidas. Para as oportunidades **ganhas**, o valor médio é de aproximadamente **$1.581,40**. A distribuição dos valores ganhos mostra uma concentração em valores menores, mas com uma "cauda longa" de vendas de alto valor que elevam a média geral.
+* **Valor da Oportunidade (`close_value`):** Para as oportunidades **ganhas (target=0)**, o valor médio é de aproximadamente **$2.360,91**, com uma mediana de $1.117,00, indicando que, embora a maioria das vendas seja de valores menores, há uma cauda longa de negócios de alto valor que elevam a média. Surpreendentemente, as oportunidades **perdidas (target=1)** apresentam um valor médio potencial ligeiramente maior, de **$2.424,05**, e uma mediana de $1.080,05. Essa similaridade nas distribuições de valor entre oportunidades ganhas e perdidas sugere que o potencial de valor em si pode não ser o principal fator de distinção entre sucesso e fracasso, e que outros elementos devem influenciar o desfecho da venda.
 
 ![Distribuição Valor Op Ganhas](images/distribuicao_valor_op_ganhas.png)
+
+![Distribuição Valor Op Perdidas](images/distribuicao_valor_op_perdidas.png)
 
 ---
 
