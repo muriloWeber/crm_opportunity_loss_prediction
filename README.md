@@ -105,8 +105,33 @@ Esta seção investigou a dinâmica do tempo e do valor das oportunidades:
 
 ---
 
+---
+
 ## 3. Data Preparation (Preparação dos Dados)
-*(Esta seção detalhará as etapas de limpeza, tratamento de valores ausentes, engenharia de features e união dos datasets.)*
+
+Nesta fase, os dados foram transformados e limpos para serem adequados à modelagem preditiva, garantindo a qualidade e o formato necessário para os algoritmos de Machine Learning. As principais etapas realizadas foram:
+
+* **Tratamento de Valores Ausentes:**
+    * Para colunas categóricas como `subsidiary_of`, `sector`, `office_location`, `account` e `series`, os valores `NaN` foram preenchidos com marcadores como `Not_Subsidiary` ou `Unknown_` (e.g., `Unknown_Sector`), permitindo que essas informações fossem mantidas e codificadas posteriormente.
+    * Para colunas numéricas (`revenue`, `employees`, `year_established`, `sales_price`), os valores ausentes foram imputados utilizando a **mediana**, uma abordagem robusta que minimiza o impacto de *outliers*. A coluna `close_value` já havia sido pré-tratada no processo de Data Understanding com base no potencial de valor de oportunidades perdidas, não necessitando de intervenção adicional aqui.
+
+* **Engenharia de Features:**
+    * Foi criada a feature **`opportunity_duration_days`**, calculada como a diferença em dias entre `close_date` e `engage_date`. Para garantir a consistência, os valores `NaN` (resultantes de datas ausentes) e durações não positivas (`<= 0`) foram preenchidos com a **mediana das durações válidas e positivas** existentes no dataset, tornando a feature robusta para a modelagem.
+
+* **Codificação de Variáveis Categóricas:**
+    * Todas as features categóricas (`subsidiary_of`, `sector`, `office_location`, `sales_agent`, `manager`, `regional_office`, `product`, `series`, etc.) foram convertidas em um formato numérico através de **One-Hot Encoding** (`pd.get_dummies`). O parâmetro `drop_first=True` foi aplicado para evitar a multicolinearidade e otimizar a representação das categorias.
+
+* **Remoção de Colunas Desnecessárias:**
+    * Colunas identificadoras únicas (`opportunity_id`, `account`) e as colunas de data originais (`engage_date`, `close_date`) foram removidas, pois suas informações já foram extraídas na `opportunity_duration_days` ou não são úteis para o treinamento do modelo.
+
+* **Escalonamento de Variáveis Numéricas:**
+    * As features numéricas (`year_established`, `revenue`, `employees`, `sales_price`, `close_value`, `opportunity_duration_days`) foram padronizadas utilizando **`StandardScaler`**. Este processo transforma os dados para terem média zero e variância unitária, o que é fundamental para o bom desempenho de muitos algoritmos de Machine Learning, especialmente aqueles baseados em distância ou otimização por gradiente.
+
+* **Divisão em Conjuntos de Treino e Teste:**
+    * O dataset final, pronto para a modelagem, foi dividido em **conjuntos de treinamento (80%) e teste (20%)**. A variável alvo (`target`) foi utilizada para estratificação (`stratify=y`), assegurando que a proporção de oportunidades ganhas (`0`) e perdidas (`1`) fosse mantida consistentemente em ambos os conjuntos, o que é crucial para evitar viés em datasets desbalanceados.
+
+* **Modelo Baseline:**
+    * Um **modelo baseline** simples foi estabelecido, prevendo sempre a classe majoritária (oportunidade **ganha**, ou `target=0`). Este baseline servirá como um ponto de comparação mínimo para avaliar o desempenho dos modelos de Machine Learning mais complexos que serão desenvolvidos. Suas métricas de Recall para a classe minoritária (perdida) e F1-score foram, como esperado, zero.
 
 ---
 
