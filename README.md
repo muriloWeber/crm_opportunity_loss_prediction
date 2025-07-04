@@ -161,6 +161,12 @@ A **Matriz de Confusão** no conjunto de teste reforçou esses resultados:
 
 Isso significa que, de 650 oportunidades perdidas reais, o modelo identificou **632 Verdadeiros Positivos** (um recall de 97%). Apenas **18 Falsos Negativos** ocorreram, o que é um resultado notável para o objetivo de minimizar a perda de oportunidades.
 
+A **Curva ROC** abaixo ilustra a excelente capacidade de discriminação do modelo entre as classes 'ganha' e 'perdida', com uma área sob a curva (AUC) próxima de 1.0.
+
+![Curva ROC do Modelo LightGBM](images/curva_roc.png)
+
+**AUC-ROC Score: 0.9987**
+
 ### 5.1. Análise de Overfitting e Validação Cruzada
 
 Para garantir a robustez e a capacidade de generalização do modelo, foi realizada uma análise detalhada de overfitting e uma **Validação Cruzada Estratificada com 5 folds**.
