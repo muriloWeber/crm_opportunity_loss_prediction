@@ -180,6 +180,10 @@ Os resultados da Validação Cruzada corroboraram essa conclusão, apresentando 
 
 A consistência e os altos valores dessas métricas confirmam que o modelo LightGBM é **altamente robusto, generalizável** e atende (e supera) as expectativas para o problema de negócio de prever a perda de oportunidades de venda.
 
+A visualização a seguir ilustra a distribuição dos scores de AUC-ROC e Recall da classe 1 em cada fold da validação cruzada, evidenciando a baixa variabilidade e a alta consistência do modelo.
+
+![Box Plot das Métricas de Validação Cruzada](images/cv_metrics_boxplot.png)
+
 ---
 
 ## 6. Arquitetura da Solução
