@@ -134,12 +134,45 @@ Nesta fase, os dados foram transformados e limpos para serem adequados à modela
 ---
 
 ## 4. Modeling (Modelagem)
-*(Aqui serão apresentados os modelos de Machine Learning testados, o processo de treinamento e otimização.)*
+
+Nesta fase, o foco foi no desenvolvimento e treinamento de um modelo de Machine Learning capaz de prever a probabilidade de uma oportunidade de venda ser perdida (`target=1`).
+
+Inicialmente, foi testado um modelo de **Regressão Logística**. Apesar da sua simplicidade e interpretabilidade, a performance inicial foi insatisfatória, especialmente no que diz respeito à capacidade de identificar a classe minoritária (oportunidades perdidas), apresentando um **Recall de apenas 8% para a classe 1** e um **AUC-ROC de 0.5701**. Esses resultados indicaram que a Regressão Logística não era adequada para capturar a complexidade dos padrões no dataset e atingir os objetivos de negócio.
+
+Dada a baixa performance do modelo inicial e a necessidade de um classificador mais robusto, foi tomada a decisão estratégica de transicionar para um algoritmo de **Gradient Boosting**. Especificamente, optou-se pelo **LightGBM (`lgb.LGBMClassifier`)**, conhecido por sua alta eficiência, velocidade e capacidade de lidar com datasets complexos e desbalanceados.
+
+O modelo LightGBM foi configurado com `objective='binary'` para classificação binária, `metric='auc'` para otimização em problemas desbalanceados e, crucialmente, `is_unbalance=True` para dar maior peso à classe minoritária (`target=1`, oportunidades perdidas) durante o treinamento.
 
 ---
 
 ## 5. Evaluation (Avaliação)
-*(Discussão das métricas de avaliação do modelo, com foco em Precision, Recall, F1-Score e AUC-ROC, e a Matriz de Confusão.)*
+
+A avaliação do modelo LightGBM revelou um desempenho **excepcional**, superando drasticamente o modelo baseline e a Regressão Logística. As métricas no **conjunto de teste** demonstraram a alta capacidade de generalização do modelo:
+
+* **Precision (Classe 'Perdido' - 1): 97%**
+* **Recall (Classe 'Perdido' - 1): 97%**
+* **F1-Score (Classe 'Perdido' - 1): 97%**
+* **Accuracy Geral: 98%**
+* **AUC-ROC Score: 0.9987**
+
+A **Matriz de Confusão** no conjunto de teste reforçou esses resultados:
+
+![Matriz de Confusão LightGBM](images/cm_lightgbm.png)
+
+Isso significa que, de 650 oportunidades perdidas reais, o modelo identificou **632 Verdadeiros Positivos** (um recall de 97%). Apenas **18 Falsos Negativos** ocorreram, o que é um resultado notável para o objetivo de minimizar a perda de oportunidades.
+
+### 5.1. Análise de Overfitting e Validação Cruzada
+
+Para garantir a robustez e a capacidade de generalização do modelo, foi realizada uma análise detalhada de overfitting e uma **Validação Cruzada Estratificada com 5 folds**.
+
+A comparação das métricas entre o **conjunto de treino** (ex: AUC-ROC de 0.9998) e o **conjunto de teste** (AUC-ROC de 0.9987) mostrou uma diferença mínima, indicando que o modelo não está superajustado aos dados de treinamento.
+
+Os resultados da Validação Cruzada corroboraram essa conclusão, apresentando médias de desempenho altamente consistentes em todas as divisões dos dados, com **desvios padrão extremamente baixos**:
+
+* **Média Recall (Classe 'Perdido' - 1) no Teste/Validação: 0.9765 +/- 0.0037**
+* **Média AUC-ROC no Teste/Validação: 0.9984 +/- 0.0004**
+
+A consistência e os altos valores dessas métricas confirmam que o modelo LightGBM é **altamente robusto, generalizável** e atende (e supera) as expectativas para o problema de negócio de prever a perda de oportunidades de venda.
 
 ---
 
