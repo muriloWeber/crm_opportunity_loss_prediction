@@ -187,12 +187,130 @@ A visualização a seguir ilustra a distribuição dos scores de AUC-ROC e Recal
 ---
 
 ## 6. Arquitetura da Solução
-*(Esta seção descreverá a arquitetura com FastAPI para o modelo e Streamlit para a interface de simulação de CRM.)*
+
+A solução para disponibilizar o modelo preditivo para consumo e simular sua integração com um CRM é composta por duas camadas principais, garantindo flexibilidade e escalabilidade:
+
+### 6.1. API de Predição com FastAPI
+
+Um serviço de API será construído utilizando **FastAPI**. Esta API terá as seguintes responsabilidades:
+
+* **Exposição do Modelo:** Irá carregar o modelo LightGBM treinado (`lightgbm_model.joblib`) em memória.
+* **Recebimento de Dados:** Irá aceitar requisições HTTP (provavelmente POST) contendo os dados de uma nova oportunidade de venda.
+* **Pré-processamento:** Internamente, a API aplicará as mesmas etapas de pré-processamento utilizadas durante o treinamento (escalonamento, One-Hot Encoding, etc.) nos dados de entrada da nova oportunidade.
+* **Inferência:** Utilizará o modelo carregado para prever a **probabilidade** de a oportunidade ser perdida (`target=1`), em vez de uma classificação binária direta. Essa probabilidade oferecerá uma granularidade valiosa para a tomada de decisão.
+* **Resposta:** Retornará a probabilidade calculada para o cliente que a consumiu.
+
+A escolha do FastAPI se deve à sua **alta performance**, facilidade de uso, documentação automática (Swagger/OpenAPI) e suporte a tipagem de dados, o que facilita o desenvolvimento e a manutenção.
+
+### 6.2. Interface de Simulação de CRM com Streamlit
+
+Para simular a interação de um usuário de CRM com a API de predição, será desenvolvida uma aplicação web leve utilizando **Streamlit**. Esta interface terá as seguintes funcionalidades:
+
+* **Entrada de Dados:** Permitirá que o usuário insira manualmente os atributos de uma nova oportunidade de venda (ou utilize dados de exemplo).
+* **Comunicação com a API:** Fará requisições para a API de predição (FastAPI), enviando os dados da oportunidade.
+* **Exibição dos Resultados:** Apresentará de forma clara e intuitiva a probabilidade de a oportunidade ser perdida, retornada pela API. Isso permitirá simular como um alerta ou indicador de risco apareceria em um CRM real.
+
+O Streamlit foi escolhido pela sua rapidez em construir interfaces interativas e pela facilidade de conexão com APIs REST.
+
+### 6.3. Conteinerização com Docker (Plano Futuro)
+
+Para garantir a portabilidade, isolamento de ambiente e facilitar o deploy da solução em um ambiente de produção (tanto da API quanto da interface Streamlit), ambas as aplicações seriam **conteinerizadas utilizando Docker**. Isso permitiria que todo o ambiente de execução e suas dependências fossem empacotados, podendo ser facilmente implantados em qualquer servidor compatível com Docker.
+
+**Observação Importante:** Embora a conteinerização com Docker seja o plano ideal para deploy em produção, para fins de desenvolvimento e demonstração local neste ambiente, as aplicações serão executadas diretamente em ambiente Python, sem a camada Docker, devido a restrições de instalação.
 
 ---
 
-## 7. Como Rodar o Projeto
-*(Instruções detalhadas para configurar o ambiente, instalar dependências e rodar a aplicação localmente.)*
+## 7. Como Rodar o Projeto Localmente
+
+Para rodar o projeto localmente e simular a solução completa (API de predição e interface de CRM), siga os passos abaixo:
+
+### 7.1. Pré-requisitos
+
+Certifique-se de ter o **Python 3.13.2** instalado e um ambiente virtual (`venv`) configurado e ativado.
+
+### 7.2. Configuração do Ambiente
+
+1.  **Clone o Repositório:**
+    ```bash
+    git clone [https://github.com/seu-usuario/crm_opportunity_loss_prediction.git](https://github.com/seu-usuario/crm_opportunity_loss_prediction.git)
+    cd crm_opportunity_loss_prediction
+    ```
+    *(Nota: Altere `https://github.com/seu-usuario/crm_opportunity_loss_prediction.git` para o link real do seu repositório quando ele estiver no GitHub.)*
+
+2.  **Ative o Ambiente Virtual:**
+    ```bash
+    # Para Windows
+    .\venv\Scripts\activate
+    # Para macOS/Linux
+    source venv/bin/activate
+    ```
+
+3.  **Instale as Dependências:**
+    Certifique-se de ter um arquivo `requirements.txt` com todas as dependências. Se ainda não tem, pode gerá-lo com:
+    ```bash
+    pip freeze > requirements.txt
+    ```
+    E então instale:
+    ```bash
+    pip install -r requirements.txt
+    ```
+    **As principais bibliotecas para esta etapa são:** `fastapi`, `uvicorn[standard]`, `streamlit`. Certifique-se de que `pandas`, `scikit-learn` e `lightgbm` também estejam lá.
+
+### 7.3. Execução dos Notebooks de Análise e Treinamento
+
+É fundamental que os notebooks `01_data_understanding.ipynb`, `02_data_preparation.ipynb` e `03_model_training.ipynb` sejam executados na ordem para gerar os dados pré-processados e salvar o modelo treinado.
+
+* Abra o Jupyter Notebook ou JupyterLab:
+    ```bash
+    jupyter notebook
+    # ou
+    jupyter lab
+    ```
+* Execute as células de cada notebook (`01_data_understanding.ipynb`, `02_data_preparation.ipynb`, `03_model_training.ipynb`) sequencialmente. O notebook `03_model_training.ipynb` salvará o modelo `lightgbm_model.joblib` na pasta `models/`.
+
+### 7.4. Execução da API de Predição (FastAPI)
+
+1.  **Navegue até a pasta da API:**
+    Crie uma estrutura como `src/api/` e coloque o arquivo da sua API (ex: `main.py`) lá. Assumindo que seu arquivo FastAPI se chamará `api.py` dentro de uma pasta `app_api` na raiz do projeto:
+    ```bash
+    cd app_api # Ou o caminho para sua pasta da API
+    ```
+    *(Você precisará criar esse arquivo `api.py` ou `main.py` para a API, mas vamos fazer isso em um próximo passo.)*
+
+2.  **Inicie o Servidor FastAPI:**
+    ```bash
+    uvicorn api:app --host 0.0.0.0 --port 8000 --reload
+    ```
+    * `api:app`: Assume que seu arquivo é `api.py` e sua instância FastAPI é `app`. Ajuste conforme necessário.
+    * `--host 0.0.0.0`: Torna a API acessível de outras máquinas na rede (útil para testes).
+    * `--port 8000`: Define a porta da API.
+    * `--reload`: Reinicia o servidor automaticamente a cada alteração no código (útil para desenvolvimento).
+
+    A API estará acessível em `http://localhost:8000` (ou o IP da sua máquina). A documentação interativa (Swagger UI) estará disponível em `http://localhost:8000/docs`.
+
+### 7.5. Execução da Interface de Simulação (Streamlit)
+
+1.  **Mantenha a API rodando** em um terminal separado.
+
+2.  **Abra um NOVO terminal** e navegue para a pasta raiz do projeto.
+
+3.  **Ative o Ambiente Virtual** novamente neste novo terminal (se não estiver ativo).
+
+4.  **Navegue até a pasta da interface:**
+    Crie uma estrutura como `src/app/` e coloque o arquivo da sua interface (ex: `app.py`) lá. Assumindo que seu arquivo Streamlit se chamará `app.py` dentro de uma pasta `app_streamlit` na raiz do projeto:
+    ```bash
+    cd app_streamlit # Ou o caminho para sua pasta do Streamlit
+    ```
+    *(Você precisará criar esse arquivo `app.py` para o Streamlit e codificar a interface lá.)*
+
+5.  **Inicie a Aplicação Streamlit:**
+    ```bash
+    streamlit run app.py
+    ```
+
+    A aplicação Streamlit será aberta automaticamente no seu navegador, geralmente em `http://localhost:8501`.
+
+Com esses passos, você terá a API e a interface de simulação rodando localmente, permitindo a demonstração completa do fluxo de predição de perda de oportunidades.
 
 ---
 
