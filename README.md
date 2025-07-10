@@ -225,46 +225,15 @@ Para garantir a portabilidade, isolamento de ambiente e facilitar o deploy da so
 
 ---
 
-## 7. Estrutura do Projeto
-
-A estrutura do repositório está organizada da seguinte forma:
-
-├── app_api/
-│   └── api.py                    # Aplicação FastAPI para servir o modelo (A SER DESENVOLVIDO)
-├── app_streamlit/
-│   └── app.py                    # Interface Streamlit para simulação (A SER DESENVOLVIDO)
-├── data/
-│   ├── raw/                      # Dados brutos
-│   │   └── oportunidades_venda.csv
-│   └── processed/                # Dados processados para modelagem
-│       └── df_eda_consolidated.csv
-│       └── df_processed_for_modeling.csv
-├── images/                       # Imagens e gráficos gerados pelos notebooks
-│   ├── cm_lightgbm.png
-│   ├── curva_roc.png
-│   └── cv_metrics_boxplot.png
-├── models/                       # Modelos treinados e pipelines salvos
-│   └── preprocessor_pipeline.joblib
-│   └── full_pipeline.joblib
-├── notebooks/
-│   ├── 01_data_understanding.ipynb              # Análise Exploratória de Dados (EDA)
-│   ├── 02_feature_engineering_and_pipeline_training.ipynb  # Engenharia de Features, Tratamento de NAs e Treinamento do Pre-processador
-│   └── 03_model_experimentation_and_detailed_evaluation.ipynb # Experimentação, Escolha e Avaliação Detalhada do Modelo
-├── .gitignore                    # Arquivos e diretórios a serem ignorados pelo Git
-├── README.md                     # Este arquivo
-└── requirements.txt              # Dependências do projeto
-
----
-
-## 8. Como Rodar o Projeto Localmente
+## 7. Como Rodar o Projeto Localmente
 
 Para rodar o projeto localmente e gerar os artefatos de modelo, siga os passos abaixo:
 
-### 8.1. Pré-requisitos
+### 7.1. Pré-requisitos
 
 Certifique-se de ter o **Python 3.13.2** instalado e um ambiente virtual (`venv`) configurado e ativado.
 
-### 8.2. Configuração do Ambiente
+### 7.2. Configuração do Ambiente
 
 1.  **Clone o Repositório:**
     ```bash
@@ -292,7 +261,7 @@ Certifique-se de ter o **Python 3.13.2** instalado e um ambiente virtual (`venv`
     ```
     **As principais bibliotecas para esta etapa são:** `pandas`, `scikit-learn`, `lightgbm`, `matplotlib`, `seaborn`, `jupyter`.
 
-### 8.3. Execução dos Notebooks de Análise e Treinamento
+### 7.3. Execução dos Notebooks de Análise e Treinamento
 
 É fundamental que os notebooks `01_data_understanding.ipynb` e, em seguida, **`02_feature_engineering_and_pipeline_training.ipynb`** sejam executados sequencialmente.
 
@@ -312,7 +281,7 @@ Para executá-los:
 
 ---
 
-## 9. Tecnologias Utilizadas
+## 8. Tecnologias Utilizadas
 * Python
 * Pandas
 * Scikit-learn
