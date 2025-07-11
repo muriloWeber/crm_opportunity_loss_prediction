@@ -119,10 +119,6 @@ Nesta fase, realizada primariamente no notebook `02_feature_engineering_and_pipe
 
 As principais etapas realizadas e encapsuladas no pipeline foram:
 
-* **Tratamento de Valores Ausentes:**
-    * Para colunas categóricas como `subsidiary_of`, `sector`, `office_location`, `account` e `series`, os valores `NaN` são preenchidos com marcadores como `Not_Subsidiary` ou `Unknown_` (e.g., `Unknown_Sector`).
-    * Para colunas numéricas (`revenue`, `employees`, `year_established`, `sales_price`, `close_value`), os valores ausentes são imputados utilizando a **mediana**.
-
 * **Engenharia de Features de Data (`opportunity_duration_days`):**
     * Foi desenvolvido um **`DateFeatureEngineer` custom transformer** (`src/utils/custom_transformers.py`).
     * Este transformer recebe as colunas de data `engage_date` e `close_date`.
@@ -130,17 +126,22 @@ As principais etapas realizadas e encapsuladas no pipeline foram:
     * Valores `NaN` (resultantes de datas ausentes ou inválidas) e durações não positivas (`<= 0`) em `opportunity_duration_days` são preenchidos com a mediana das durações válidas e positivas observadas nos dados de treinamento.
     * As colunas `engage_date` e `close_date` são removidas após a criação da nova feature.
 
+* **Tratamento de Valores Ausentes (Imputação no Pipeline):**
+    * Para colunas **numéricas** (`revenue`, `employees`, `year_established`, `sales_price`, `close_value`), os valores `NaN` são preenchidos utilizando a **mediana** calculada nos dados de treinamento (`SimpleImputer(strategy='median')`).
+    * Para colunas **categóricas** (`subsidiary_of`, `sector`, `office_location`, `sales_agent`, `product`, `series`, `manager`, `regional_office`), os valores `NaN` são preenchidos com um valor constante `'Unknown'` ou `'Not_Subsidiary'`, garantindo que não haja valores ausentes antes da codificação (`SimpleImputer(strategy='constant', fill_value='Unknown')`). **Importante:** A imputação para `'account'` não é feita no pipeline, pois esta coluna é removida antes da entrada do pipeline.
+
 * **Construção e Ajuste do Pipeline de Pré-processamento (`preprocessor_pipeline.joblib`):**
-    * Um **`ColumnTransformer`** foi configurado para encapsular as transformações de pré-processamento.
-    * O `DateFeatureEngineer` é a primeira etapa, seguido por:
-        * **Escalonamento de Variáveis Numéricas:** As features numéricas (`close_value`, `year_established`, `revenue`, `employees`, `sales_price`, `opportunity_duration_days`) são padronizadas utilizando **`StandardScaler`**.
-        * **Codificação de Variáveis Categóricas:** As features categóricas (`sales_agent`, `product`, `sector`, `office_location`, `subsidiary_of`, `series`, `manager`, `regional_office`) são convertidas em um formato numérico através de **One-Hot Encoding** (`OneHotEncoder`).
-    * Este `ColumnTransformer` é ajustado aos dados e salvo como **`preprocessor_pipeline.joblib`** na pasta `models/`. Ele será carregado em fases posteriores para garantir que as mesmas transformações sejam aplicadas consistentemente nos dados de treino, teste e novos dados em produção.
+    * Um **`Pipeline` sequencial principal** foi criado para orquestrar as transformações.
+    * A **primeira etapa** deste pipeline é o `DateFeatureEngineer`, que lida com as colunas de data e cria `opportunity_duration_days`.
+    * A **segunda etapa** é um **`ColumnTransformer` aninhado**. Este `ColumnTransformer` é responsável por:
+        * **Escalonamento de Variáveis Numéricas:** As features numéricas (agora incluindo `opportunity_duration_days`) são padronizadas utilizando **`StandardScaler`**.
+        * **Codificação de Variáveis Categóricas:** As features categóricas são convertidas em um formato numérico através de **One-Hot Encoding** (`OneHotEncoder`).
+    * Este `preprocessor_pipeline` completo é ajustado aos dados e salvo como **`preprocessor_pipeline.joblib`** na pasta `models/`. Ele será carregado em fases posteriores para garantir que as mesmas transformações sejam aplicadas consistentemente nos dados de treino, teste e novos dados em produção.
 
 * **Remoção de Colunas Não Utilizadas no Modelo (antes do pipeline):**
     * Colunas identificadoras únicas (`opportunity_id`, `account`) e a coluna `deal_stage` são removidas antes da entrada no pipeline, pois suas informações não são úteis diretamente para o treinamento do modelo.
 
-Ao final desta fase, temos um DataFrame limpo e um pipeline de pré-processamento (`preprocessor_pipeline.joblib`) pronto para ser utilizado na experimentação e treinamento do modelo.
+Ao final desta fase, temos um DataFrame pronto para modelagem e um pipeline de pré-processamento (`preprocessor_pipeline.joblib`) que lida de forma autônoma com engenharia de features de data e imputação de valores ausentes, garantindo consistência do início ao fim.
 
 ---
 
