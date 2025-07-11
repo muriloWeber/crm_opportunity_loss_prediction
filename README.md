@@ -115,30 +115,32 @@ Esta seção investigou a dinâmica do tempo e do valor das oportunidades:
 
 ## 3. Fase CRISP-DM: Data Preparation (Preparação dos Dados)
 
-Nesta fase, realizada primariamente no notebook `02_feature_engineering_and_pipeline_training.ipynb`, os dados foram transformados e limpos para serem adequados à modelagem preditiva. O foco foi em construir um **pipeline de pré-processamento robusto** que pudesse ser reutilizado consistentemente e salvar um DataFrame pronto para a modelagem.
+Nesta fase, realizada primariamente no notebook `02_feature_engineering_and_pipeline_training.ipynb`, os dados foram transformados e limpos para serem adequados à modelagem preditiva. O foco foi em construir um **pipeline de pré-processamento robusto** que pudesse ser reutilizado consistentemente.
 
-As principais etapas realizadas foram:
+As principais etapas realizadas e encapsuladas no pipeline foram:
 
 * **Tratamento de Valores Ausentes:**
-    * Para colunas categóricas como `subsidiary_of`, `sector`, `office_location`, `account` e `series`, os valores `NaN` foram preenchidos com marcadores como `Not_Subsidiary` ou `Unknown_` (e.g., `Unknown_Sector`), permitindo que essas informações fossem mantidas e codificadas posteriormente.
-    * Para colunas numéricas (`revenue`, `employees`, `year_established`, `sales_price`, `close_value`), os valores ausentes foram imputados utilizando a **mediana**, uma abordagem robusta que minimiza o impacto de *outliers*.
+    * Para colunas categóricas como `subsidiary_of`, `sector`, `office_location`, `account` e `series`, os valores `NaN` são preenchidos com marcadores como `Not_Subsidiary` ou `Unknown_` (e.g., `Unknown_Sector`).
+    * Para colunas numéricas (`revenue`, `employees`, `year_established`, `sales_price`, `close_value`), os valores ausentes são imputados utilizando a **mediana**.
 
-* **Engenharia de Features:**
-    * Foi criada a feature **`opportunity_duration_days`**, calculada como a diferença em dias entre `close_date` e `engage_date`. Para garantir a consistência, os valores `NaN` (resultantes de datas ausentes) e durações não positivas (`<= 0`) foram preenchidos com a **mediana das durações válidas e positivas** existentes no dataset, tornando a feature robusta para a modelagem.
-
-* **Geração do DataFrame Processado para Modelagem (`df_processed_for_modeling.csv`):**
-    * Após o tratamento de valores ausentes e a engenharia de features, o DataFrame resultante (`df_final`) foi salvo como **`df_processed_for_modeling.csv`** na pasta `data/processed/`. Este DataFrame serve como a base consolidada e limpa para todas as etapas de modelagem subsequentes.
+* **Engenharia de Features de Data (`opportunity_duration_days`):**
+    * Foi desenvolvido um **`DateFeatureEngineer` custom transformer** (`src/utils/custom_transformers.py`).
+    * Este transformer recebe as colunas de data `engage_date` e `close_date`.
+    * Ele calcula a diferença em dias entre elas, criando a feature `opportunity_duration_days`.
+    * Valores `NaN` (resultantes de datas ausentes ou inválidas) e durações não positivas (`<= 0`) em `opportunity_duration_days` são preenchidos com a mediana das durações válidas e positivas observadas nos dados de treinamento.
+    * As colunas `engage_date` e `close_date` são removidas após a criação da nova feature.
 
 * **Construção e Ajuste do Pipeline de Pré-processamento (`preprocessor_pipeline.joblib`):**
     * Um **`ColumnTransformer`** foi configurado para encapsular as transformações de pré-processamento.
-    * **Escalonamento de Variáveis Numéricas:** As features numéricas (`close_value`, `year_established`, `revenue`, `employees`, `sales_price`, `opportunity_duration_days`) foram padronizadas utilizando **`StandardScaler`**. Este processo transforma os dados para terem média zero e variância unitária.
-    * **Codificação de Variáveis Categóricas:** As features categóricas (`sales_agent`, `product`, `sector`, `office_location`, `subsidiary_of`, `series`, `manager`, `regional_office`) foram convertidas em um formato numérico através de **One-Hot Encoding** (`OneHotEncoder`). O parâmetro `drop='first'` foi aplicado para evitar a multicolinearidade.
-    * Este `ColumnTransformer` foi ajustado aos dados e salvo como **`preprocessor_pipeline.joblib`** na pasta `models/`. Ele será carregado em fases posteriores para garantir que as mesmas transformações sejam aplicadas consistentemente nos dados de treino, teste e novos dados em produção.
+    * O `DateFeatureEngineer` é a primeira etapa, seguido por:
+        * **Escalonamento de Variáveis Numéricas:** As features numéricas (`close_value`, `year_established`, `revenue`, `employees`, `sales_price`, `opportunity_duration_days`) são padronizadas utilizando **`StandardScaler`**.
+        * **Codificação de Variáveis Categóricas:** As features categóricas (`sales_agent`, `product`, `sector`, `office_location`, `subsidiary_of`, `series`, `manager`, `regional_office`) são convertidas em um formato numérico através de **One-Hot Encoding** (`OneHotEncoder`).
+    * Este `ColumnTransformer` é ajustado aos dados e salvo como **`preprocessor_pipeline.joblib`** na pasta `models/`. Ele será carregado em fases posteriores para garantir que as mesmas transformações sejam aplicadas consistentemente nos dados de treino, teste e novos dados em produção.
 
-* **Remoção de Colunas Desnecessárias (antes da definição de X e y):**
-    * Colunas identificadoras únicas (`opportunity_id`, `account`) e as colunas de data originais (`engage_date`, `close_date`, `deal_stage`) foram removidas, pois suas informações já foram extraídas na `opportunity_duration_days` ou não são úteis para o treinamento do modelo.
+* **Remoção de Colunas Não Utilizadas no Modelo (antes do pipeline):**
+    * Colunas identificadoras únicas (`opportunity_id`, `account`) e a coluna `deal_stage` são removidas antes da entrada no pipeline, pois suas informações não são úteis diretamente para o treinamento do modelo.
 
-Ao final desta fase, temos um DataFrame limpo e processado (`df_processed_for_modeling.csv`) e um pipeline de pré-processamento (`preprocessor_pipeline.joblib`) pronto para ser utilizado na experimentação e treinamento do modelo.
+Ao final desta fase, temos um DataFrame limpo e um pipeline de pré-processamento (`preprocessor_pipeline.joblib`) pronto para ser utilizado na experimentação e treinamento do modelo.
 
 ---
 
@@ -152,7 +154,7 @@ Dada a baixa performance do modelo inicial e a necessidade de um classificador m
 
 O modelo LightGBM foi configurado com `objective='binary'` para classificação binária, `metric='auc'` para otimização em problemas desbalanceados e, crucialmente, `is_unbalance=True` para dar maior peso à classe minoritária (`target=1`, oportunidades perdidas) durante o treinamento.
 
-O **treinamento do pipeline completo (pré-processamento e LightGBM)**, que é o artefato final a ser salvo para produção, é realizado no notebook **`02_feature_engineering_and_pipeline_training.ipynb`**.
+O **treinamento do pipeline completo (pré-processamento e LightGBM)**, que é o artefato final a ser salvo para produção, é realizado no notebook **`03_model_experimentation_and_detailed_evaluation.ipynb`**.
 
 ---
 
@@ -206,8 +208,8 @@ As próximas etapas do projeto se concentrarão em transformar o modelo treinado
 Será construído um serviço de API utilizando **FastAPI** para expor o modelo. Esta API terá as seguintes responsabilidades:
 
 * **Exposição do Modelo:** Irá carregar o pipeline completo (`full_pipeline.joblib`) em memória.
-* **Recebimento de Dados:** Aceitará requisições HTTP (POST) contendo os dados de uma nova oportunidade de venda.
-* **Pré-processamento:** Internamente, a API aplicará as mesmas etapas de pré-processamento contidas no pipeline (`full_pipeline.joblib`) nos dados de entrada da nova oportunidade.
+* **Recebimento de Dados:** Aceitará requisições HTTP (POST) contendo os dados de uma nova oportunidade de venda, incluindo as datas de `engage_date` e `close_date`.
+* **Processamento de Dados:** Utilizará o `full_pipeline.joblib` para realizar **todas as etapas de pré-processamento e engenharia de features internas**, incluindo o cálculo da `opportunity_duration_days` a partir das datas de entrada.
 * **Inferência:** Utilizará o modelo para prever a **probabilidade** de a oportunidade ser perdida (`target=1`).
 * **Resposta:** Retornará a probabilidade calculada para o cliente que a consumir.
 
@@ -215,7 +217,7 @@ Será construído um serviço de API utilizando **FastAPI** para expor o modelo.
 
 Para simular a interação de um usuário de CRM com a API de predição, será desenvolvida uma aplicação web leve utilizando **Streamlit**. Esta interface terá as seguintes funcionalidades:
 
-* **Entrada de Dados:** Permitirá que o usuário insira manualmente os atributos de uma nova oportunidade de venda (ou utilize dados de exemplo).
+* **Entrada de Dados:** Permitirá que o usuário insira manualmente os atributos de uma nova oportunidade de venda (ou utilize dados de exemplo), incluindo as datas de engajamento e fechamento.
 * **Comunicação com a API:** Fará requisições para a API de predição (FastAPI), enviando os dados da oportunidade.
 * **Exibição dos Resultados:** Apresentará de forma clara e intuitiva a probabilidade de a oportunidade ser perdida, retornada pela API. Isso permitirá simular como um alerta ou indicador de risco apareceria em um CRM real.
 
@@ -263,11 +265,12 @@ Certifique-se de ter o **Python 3.13.2** instalado e um ambiente virtual (`venv`
 
 ### 7.3. Execução dos Notebooks de Análise e Treinamento
 
-É fundamental que os notebooks `01_data_understanding.ipynb` e, em seguida, **`02_feature_engineering_and_pipeline_training.ipynb`** sejam executados sequencialmente.
+É fundamental que os notebooks `01_data_understanding.ipynb`, **`02_feature_engineering_and_pipeline_training.ipynb`**, e `03_model_experimentation_and_detailed_evaluation.ipynb` sejam executados sequencialmente.
 
 * O **`01_data_understanding.ipynb`** gera o `df_eda_consolidated.csv` na pasta `data/processed/`.
-* O **`02_feature_engineering_and_pipeline_training.ipynb`** gera o `df_processed_for_modeling.csv` e o `preprocessor_pipeline.joblib` na pasta `models/`.
+* O **`02_feature_engineering_and_pipeline_training.ipynb`** gera o `df_processed_for_modeling.csv` (com colunas de data para o pipeline) e o `preprocessor_pipeline.joblib` na pasta `models/`. Este notebook agora inclui a engenharia da feature `opportunity_duration_days` utilizando um **custom transformer** (`DateFeatureEngineer`) que está em `src/utils/custom_transformers.py`.
 * O **`03_model_experimentation_and_detailed_evaluation.ipynb`** utiliza os artefatos gerados pelo `02`, realiza a experimentação e avaliação detalhada dos modelos, e então salva o `full_pipeline.joblib` na pasta `models/`.
+
 
 Para executá-los:
 
