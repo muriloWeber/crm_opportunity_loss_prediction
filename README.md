@@ -109,7 +109,7 @@ Esta seção investigou a dinâmica do tempo e do valor das oportunidades:
 
     ![Distribuição Valor Op Ganhas](images/distribuicao_valor_op_ganhas.png)
 
-    ![Distribuição Valor Op Perdidas](images/distribuicao_valor_op_perdidas.png)
+    ![Distribuição Valor Op Perdidas](images/box_plot_valor_op_perdidas.png)
 
 ---
 
@@ -200,21 +200,34 @@ A visualização a seguir ilustra a distribuição dos scores de AUC-ROC e Recal
 
 ---
 
-## 6. Fase CRISP-DM: Deployment (Implantação) - Próximos Passos (Desenvolvimento Futuro)
+## 6. Fase CRISP-DM: Deployment (Implantação)
 
-As próximas etapas do projeto se concentrarão em transformar o modelo treinado em uma solução consumível e interativa, simulando um ambiente de produção:
+As próximas etapas do projeto se concentram em transformar o modelo treinado em uma solução consumível e interativa, simulando um ambiente de produção.
 
-### 6.1. Implementação da API de Predição com FastAPI
+### 6.1. Implementação da API de Predição com FastAPI (Atualmente em Desenvolvimento)
 
-Será construído um serviço de API utilizando **FastAPI** para expor o modelo. Esta API terá as seguintes responsabilidades:
+Um serviço de API está sendo construído utilizando **FastAPI** para expor o modelo preditivo. Esta API, implementada em `src/api/app_api/api.py`, é a interface principal para consumo do modelo e possui as seguintes responsabilidades:
 
-* **Exposição do Modelo:** Irá carregar o pipeline completo (`full_pipeline.joblib`) em memória.
-* **Recebimento de Dados:** Aceitará requisições HTTP (POST) contendo os dados de uma nova oportunidade de venda, incluindo as datas de `engage_date` e `close_date`.
-* **Processamento de Dados:** Utilizará o `full_pipeline.joblib` para realizar **todas as etapas de pré-processamento e engenharia de features internas**, incluindo o cálculo da `opportunity_duration_days` a partir das datas de entrada.
-* **Inferência:** Utilizará o modelo para prever a **probabilidade** de a oportunidade ser perdida (`target=1`).
-* **Resposta:** Retornará a probabilidade calculada para o cliente que a consumir.
+* **Carregamento do Modelo:** Ao iniciar, a API carrega o pipeline completo (`full_pipeline.joblib`), que encapsula todas as etapas de pré-processamento e o modelo LightGBM treinado, garantindo que o modelo esteja pronto em memória para inferência rápida.
+* **Endpoint de Verificação de Saúde (`/health`):** Um endpoint simples (`GET /health`) que verifica se a API está online e se o modelo foi carregado com sucesso, retornando `{"status": "ok", "message": "API está online e modelo carregado."}`.
+* **Endpoint de Predição (`/predict`):**
+    * Aceita requisições `POST` com dados de uma nova oportunidade de venda em formato JSON.
+    * Utiliza o modelo Pydantic `OpportunityData` para **validar e estruturar os dados de entrada**. Este modelo é robusto e **permite que campos numéricos e categóricos sejam opcionais ou nulos**, utilizando os `SimpleImputers` configurados no pipeline para preenchimento (mediana para numéricos, 'Unknown' para categóricos). Datas nulas também são tratadas pelo `DateFeatureEngineer`.
+    * Processa os dados de entrada usando o `full_pipeline.joblib`, que inclui a engenharia de features de data (`opportunity_duration_days`) e todas as transformações necessárias.
+    * Realiza a inferência para prever a **probabilidade de a oportunidade ser perdida** (classe 1).
+    * **Classificação para o Negócio:** Traduz a probabilidade numérica em uma **label interpretável** para o time de vendas (ex: "Chance MUITO ALTA de Perda", "Chance BAIXA de Perda"), baseada em limiares predefinidos a partir da distribuição das probabilidades de perda do modelo.
+    * Retorna a probabilidade numérica e a label de classificação em formato JSON (ex: `{"prediction_probability_of_loss": 0.0001, "prediction_label": "Chance BAIXA de Perda"}`).
+* **Como Rodar a API Localmente:**
+    1.  Certifique-se de que todas as dependências estão instaladas (`pip install -r requirements.txt`).
+    2.  Execute todos os notebooks (`01`, `02`, `03`) sequencialmente para garantir que o `full_pipeline.joblib` esteja gerado e salvo em `models/`.
+    3.  Navegue até a raiz do projeto no seu terminal.
+    4.  Execute a API usando Uvicorn:
+        ```bash
+        uvicorn src.api.app_api.api:app --reload
+        ```
+    5.  Acesse a documentação interativa da API (Swagger UI) em **http://127.0.0.1:8000/docs**. Lá, você pode testar os endpoints `/health` e `/predict`.
 
-### 6.2. Desenvolvimento da Interface de Simulação de CRM com Streamlit
+### 6.2. Desenvolvimento da Interface de Simulação de CRM com Streamlit (Desenvolvimento Futuro)
 
 Para simular a interação de um usuário de CRM com a API de predição, será desenvolvida uma aplicação web leve utilizando **Streamlit**. Esta interface terá as seguintes funcionalidades:
 
@@ -222,7 +235,7 @@ Para simular a interação de um usuário de CRM com a API de predição, será 
 * **Comunicação com a API:** Fará requisições para a API de predição (FastAPI), enviando os dados da oportunidade.
 * **Exibição dos Resultados:** Apresentará de forma clara e intuitiva a probabilidade de a oportunidade ser perdida, retornada pela API. Isso permitirá simular como um alerta ou indicador de risco apareceria em um CRM real.
 
-### 6.3. Conteinerização com Docker
+### 6.3. Conteinerização com Docker (Desenvolvimento Futuro)
 
 Para garantir a portabilidade, isolamento de ambiente e facilitar o deploy da solução em um ambiente de produção (tanto da API quanto da interface Streamlit), ambas as aplicações seriam **conteinerizadas utilizando Docker**. Isso permitiria que todo o ambiente de execução e suas dependências fossem empacotados, podendo ser facilmente implantados em qualquer servidor compatível com Docker.
 
@@ -272,7 +285,6 @@ Certifique-se de ter o **Python 3.13.2** instalado e um ambiente virtual (`venv`
 * O **`02_feature_engineering_and_pipeline_training.ipynb`** gera o `df_processed_for_modeling.csv` (com colunas de data para o pipeline) e o `preprocessor_pipeline.joblib` na pasta `models/`. Este notebook agora inclui a engenharia da feature `opportunity_duration_days` utilizando um **custom transformer** (`DateFeatureEngineer`) que está em `src/utils/custom_transformers.py`.
 * O **`03_model_experimentation_and_detailed_evaluation.ipynb`** utiliza os artefatos gerados pelo `02`, realiza a experimentação e avaliação detalhada dos modelos, e então salva o `full_pipeline.joblib` na pasta `models/`.
 
-
 Para executá-los:
 
 * Abra o Jupyter Notebook ou JupyterLab:
@@ -294,6 +306,7 @@ Para executá-los:
 * Seaborn
 * Jupyter Notebook/Lab
 * Git / GitHub
-* FastAPI (futuro)
+* FastAPI
+* Uvicorn
 * Streamlit (futuro)
 * Docker (futuro)
