@@ -212,11 +212,13 @@ Um serviço de API foi construído utilizando **FastAPI** para expor o modelo pr
 * **Endpoint de Verificação de Saúde (`/health`):** Um endpoint simples (`GET /health`) que verifica se a API está online e se o modelo foi carregado com sucesso, retornando `{"status": "ok", "message": "API está online e modelo carregado."}`.
 * **Endpoint de Predição (`/predict`):**
     * Aceita requisições `POST` com dados de uma nova oportunidade de venda em formato JSON.
-    * Utiliza o modelo Pydantic `OpportunityData` para **validar e estruturar os dados de entrada**. Este modelo é robusto e **permite que campos numéricos e categóricos sejam opcionais ou nulos**, utilizando os `SimpleImputers` configurados no pipeline para preenchimento (mediana para numéricos, 'Unknown' para categóricos). Datas nulas ou em formatos específicos também são tratadas pelo `DateFeatureEngineer`. **A feature `deal_stage` agora é um campo esperado na entrada da API**, processado pelo pipeline.
+    * Utiliza o modelo Pydantic `OpportunityData` para **validar e estruturar os dados de entrada**. Este modelo é robusto e **permite que campos numéricos e categóricos sejam opcionais ou nulos**, utilizando os `SimpleImputers` configurados no pipeline para preenchimento (mediana para numéricos, 'Unknown' para categóricos). Datas nulas ou em formatos específicos também são tratadas pelo `DateFeatureEngineer`. A feature `deal_stage` agora é um campo esperado na entrada da API, processado pelo pipeline.
     * Processa os dados de entrada usando o `full_pipeline.joblib`, que inclui a engenharia de features de data (`opportunity_duration_days`) e todas as transformações necessárias.
     * Realiza a inferência para prever a **probabilidade de a oportunidade ser perdida** (classe 1).
     * **Classificação para o Negócio:** Traduz a probabilidade numérica em uma **label interpretável** para o time de vendas (ex: "Chance MUITO ALTA de Perda", "Chance BAIXA de Perda"), baseada em limiares predefinidos a partir da distribuição das probabilidades de perda do modelo.
     * Retorna a probabilidade numérica e a label de classificação em formato JSON (ex: `{"prediction_probability_of_loss": 0.0001, "prediction_label": "Chance BAIXA de Perda"}`).
+* **Conteinerização da API (`src/api/app_api/Dockerfile`):**
+    * Um `Dockerfile` dedicado foi criado para empacotar a API e suas dependências, garantindo um ambiente isolado e portátil. Ele copia o código da API, os utilitários e a pasta `models/` para dentro do contêiner, onde o Uvicorn executa a aplicação.
 * **Como Rodar a API Localmente:**
     1.  Certifique-se de que todas as dependências estão instaladas (`pip install -r requirements.txt`).
     2.  Execute todos os notebooks (`01`, `02`, `03`) sequencialmente para garantir que o `full_pipeline.joblib` esteja gerado e salvo em `models/`.
@@ -232,9 +234,11 @@ Um serviço de API foi construído utilizando **FastAPI** para expor o modelo pr
 Para simular a interação de um usuário de CRM com a API de predição, uma aplicação web leve foi desenvolvida utilizando **Streamlit**. Esta interface, localizada em `src/app/app_streamlit/streamlit_app.py`, possui as seguintes funcionalidades:
 
 * **Entrada de Dados Amigável:** Permite que o usuário insira os atributos de uma nova oportunidade de venda utilizando **dropdowns para campos categóricos** (reduzindo erros e garantindo consistência), incluindo a **`Etapa do Negócio` (deal_stage)**, e seletores de data para `Data de Engajamento` e `Previsão de Fechamento`.
-* **Comunicação com a API:** Faz requisições para a API de predição (FastAPI), enviando os dados da oportunidade.
+* **Comunicação com a API:** Faz requisições para a API de predição (FastAPI). A URL da API é configurada via **variável de ambiente (`API_URL`)**, permitindo que a aplicação funcione tanto localmente (apontando para `http://127.0.0.1:8000/predict`) quanto em um ambiente conteinerizado (apontando para `http://api:8000/predict`).
 * **Exibição dos Resultados:** Apresenta de forma clara e intuitiva a probabilidade de a oportunidade ser perdida e a classificação textual ("Chance MUITO ALTA de Perda", etc.), com indicadores visuais.
 * **Tratamento de Dados Ausentes:** O aplicativo permite que o usuário deixe alguns campos em branco (ou selecione 'Unknown'/'Not_Subsidiary'), confiando na lógica de imputação do pipeline de pré-processamento na API.
+* **Conteinerização do Streamlit (`src/app/app_streamlit/Dockerfile`):**
+    * Um `Dockerfile` dedicado foi criado para empacotar o aplicativo Streamlit, garantindo um ambiente de execução consistente.
 * **Como Rodar o Aplicativo Streamlit Localmente:**
     1.  Certifique-se de que a API FastAPI (Seção 6.1) está rodando em um terminal separado.
     2.  Abra um **novo terminal** na raiz do projeto.
@@ -246,9 +250,16 @@ Para simular a interação de um usuário de CRM com a API de predição, uma ap
         ```
     6.  Acesse o aplicativo no seu navegador, geralmente em **http://localhost:8501**.
 
-### 6.3. Visão de Conteinerização com Docker (Conceitual)
+### 6.3. Orquestração de Contêineres com Docker Compose (`docker-compose.yml`)
 
-Embora a execução direta do Docker não seja possível no ambiente de desenvolvimento atual, o projeto está preparado para conteinerização futura. A API e a aplicação Streamlit seriam empacotadas em contêineres Docker distintos para garantir portabilidade e isolamento de ambiente. Isso facilitaria o deployment em ambientes de produção que suportem Docker, como plataformas de nuvem (Google Cloud Run, AWS App Runner, Azure Container Apps), sem a necessidade de gerenciar dependências de ambiente no host. Os `Dockerfile`s e um `docker-compose.yml` (para orquestração) seriam desenvolvidos para este propósito.
+Para orquestrar a API FastAPI e o aplicativo Streamlit, um arquivo `docker-compose.yml` foi criado na **raiz do projeto**. Ele define como construir e executar ambos os serviços, garantindo que eles possam se comunicar na rede interna do Docker.
+
+* **`services`:** Define os serviços `api` e `streamlit_app`.
+* **`build`:** Aponta para o `Dockerfile` específico de cada serviço. O `context: .` garante que a construção utilize a raiz do projeto como base.
+* **`ports`:** Mapeia as portas internas dos contêineres para as portas do host (sua máquina).
+* **`volumes`:** O volume `./models:/app/models` no serviço `api` garante que o modelo treinado localmente esteja sempre acessível pelo contêiner da API, sem precisar reconstruir a imagem a cada mudança no modelo.
+* **`depends_on`:** Garante que o serviço `api` seja iniciado antes do `streamlit_app`.
+* **`environment`:** Passa a `API_URL` como variável de ambiente para o contêiner do Streamlit, permitindo que ele se conecte à API usando o nome do serviço (`http://api:8000/predict`).
 
 ---
 
@@ -320,4 +331,4 @@ Para executá-los:
 * FastAPI
 * Uvicorn
 * Streamlit
-* Docker (Conceitual para Futuro Deploy)
+* Docker / Docker Compose (Conceitual para Futuro Deploy)
