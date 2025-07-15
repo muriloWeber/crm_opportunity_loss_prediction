@@ -202,17 +202,17 @@ A visualização a seguir ilustra a distribuição dos scores de AUC-ROC e Recal
 
 ## 6. Fase CRISP-DM: Deployment (Implantação)
 
-As próximas etapas do projeto se concentram em transformar o modelo treinado em uma solução consumível e interativa, simulando um ambiente de produção.
+Esta fase se concentra em transformar o modelo treinado em uma solução consumível e interativa.
 
-### 6.1. Implementação da API de Predição com FastAPI (Atualmente em Desenvolvimento)
+### 6.1. Implementação da API de Predição com FastAPI
 
-Um serviço de API está sendo construído utilizando **FastAPI** para expor o modelo preditivo. Esta API, implementada em `src/api/app_api/api.py`, é a interface principal para consumo do modelo e possui as seguintes responsabilidades:
+Um serviço de API foi construído utilizando **FastAPI** para expor o modelo preditivo. Esta API, implementada em `src/api/app_api/api.py`, é a interface principal para consumo do modelo e possui as seguintes responsabilidades:
 
 * **Carregamento do Modelo:** Ao iniciar, a API carrega o pipeline completo (`full_pipeline.joblib`), que encapsula todas as etapas de pré-processamento e o modelo LightGBM treinado, garantindo que o modelo esteja pronto em memória para inferência rápida.
 * **Endpoint de Verificação de Saúde (`/health`):** Um endpoint simples (`GET /health`) que verifica se a API está online e se o modelo foi carregado com sucesso, retornando `{"status": "ok", "message": "API está online e modelo carregado."}`.
 * **Endpoint de Predição (`/predict`):**
     * Aceita requisições `POST` com dados de uma nova oportunidade de venda em formato JSON.
-    * Utiliza o modelo Pydantic `OpportunityData` para **validar e estruturar os dados de entrada**. Este modelo é robusto e **permite que campos numéricos e categóricos sejam opcionais ou nulos**, utilizando os `SimpleImputers` configurados no pipeline para preenchimento (mediana para numéricos, 'Unknown' para categóricos). Datas nulas também são tratadas pelo `DateFeatureEngineer`.
+    * Utiliza o modelo Pydantic `OpportunityData` para **validar e estruturar os dados de entrada**. Este modelo é robusto e **permite que campos numéricos e categóricos sejam opcionais ou nulos**, utilizando os `SimpleImputers` configurados no pipeline para preenchimento (mediana para numéricos, 'Unknown' para categóricos). Datas nulas ou em formatos específicos também são tratadas pelo `DateFeatureEngineer`.
     * Processa os dados de entrada usando o `full_pipeline.joblib`, que inclui a engenharia de features de data (`opportunity_duration_days`) e todas as transformações necessárias.
     * Realiza a inferência para prever a **probabilidade de a oportunidade ser perdida** (classe 1).
     * **Classificação para o Negócio:** Traduz a probabilidade numérica em uma **label interpretável** para o time de vendas (ex: "Chance MUITO ALTA de Perda", "Chance BAIXA de Perda"), baseada em limiares predefinidos a partir da distribuição das probabilidades de perda do modelo.
@@ -227,17 +227,28 @@ Um serviço de API está sendo construído utilizando **FastAPI** para expor o m
         ```
     5.  Acesse a documentação interativa da API (Swagger UI) em **http://127.0.0.1:8000/docs**. Lá, você pode testar os endpoints `/health` e `/predict`.
 
-### 6.2. Desenvolvimento da Interface de Simulação de CRM com Streamlit (Desenvolvimento Futuro)
+### 6.2. Desenvolvimento da Interface de Simulação de CRM com Streamlit
 
-Para simular a interação de um usuário de CRM com a API de predição, será desenvolvida uma aplicação web leve utilizando **Streamlit**. Esta interface terá as seguintes funcionalidades:
+Para simular a interação de um usuário de CRM com a API de predição, uma aplicação web leve foi desenvolvida utilizando **Streamlit**. Esta interface, localizada em `src/app/app_streamlit/streamlit_app.py`, possui as seguintes funcionalidades:
 
-* **Entrada de Dados:** Permitirá que o usuário insira manualmente os atributos de uma nova oportunidade de venda (ou utilize dados de exemplo), incluindo as datas de engajamento e fechamento.
-* **Comunicação com a API:** Fará requisições para a API de predição (FastAPI), enviando os dados da oportunidade.
-* **Exibição dos Resultados:** Apresentará de forma clara e intuitiva a probabilidade de a oportunidade ser perdida, retornada pela API. Isso permitirá simular como um alerta ou indicador de risco apareceria em um CRM real.
+* **Entrada de Dados Amigável:** Permite que o usuário insira os atributos de uma nova oportunidade de venda utilizando **dropdowns para campos categóricos** (reduzindo erros e garantindo consistência) e seletores de data para `Data de Engajamento` e `Previsão de Fechamento`.
+* **Comunicação com a API:** Faz requisições para a API de predição (FastAPI), enviando os dados da oportunidade.
+* **Exibição dos Resultados:** Apresenta de forma clara e intuitiva a probabilidade de a oportunidade ser perdida e a classificação textual ("Chance MUITO ALTA de Perda", etc.), com indicadores visuais.
+* **Tratamento de Dados Ausentes:** O aplicativo permite que o usuário deixe alguns campos em branco (ou selecione 'Unknown'/'Not_Subsidiary'), confiando na lógica de imputação do pipeline de pré-processamento na API.
+* **Como Rodar o Aplicativo Streamlit Localmente:**
+    1.  Certifique-se de que a API FastAPI (Seção 6.1) está rodando em um terminal separado.
+    2.  Abra um **novo terminal** na raiz do projeto.
+    3.  Ative seu ambiente virtual.
+    4.  Instale o Streamlit se ainda não o fez: `pip install streamlit`.
+    5.  Execute o aplicativo:
+        ```bash
+        streamlit run src/app/app_streamlit/streamlit_app.py
+        ```
+    6.  Acesse o aplicativo no seu navegador, geralmente em **http://localhost:8501**.
 
-### 6.3. Conteinerização com Docker (Desenvolvimento Futuro)
+### 6.3. Visão de Conteinerização com Docker (Conceitual)
 
-Para garantir a portabilidade, isolamento de ambiente e facilitar o deploy da solução em um ambiente de produção (tanto da API quanto da interface Streamlit), ambas as aplicações seriam **conteinerizadas utilizando Docker**. Isso permitiria que todo o ambiente de execução e suas dependências fossem empacotados, podendo ser facilmente implantados em qualquer servidor compatível com Docker.
+Embora a execução direta do Docker não seja possível no ambiente de desenvolvimento atual, o projeto está preparado para conteinerização futura. A API e a aplicação Streamlit seriam empacotadas em contêineres Docker distintos para garantir portabilidade e isolamento de ambiente. Isso facilitaria o deployment em ambientes de produção que suportem Docker, como plataformas de nuvem (Google Cloud Run, AWS App Runner, Azure Container Apps), sem a necessidade de gerenciar dependências de ambiente no host. Os `Dockerfile`s e um `docker-compose.yml` (para orquestração) seriam desenvolvidos para este propósito.
 
 ---
 
@@ -275,7 +286,7 @@ Certifique-se de ter o **Python 3.13.2** instalado e um ambiente virtual (`venv`
     ```bash
     pip install -r requirements.txt
     ```
-    **As principais bibliotecas para esta etapa são:** `pandas`, `scikit-learn`, `lightgbm`, `matplotlib`, `seaborn`, `jupyter`.
+    **As principais bibliotecas para esta etapa são:** `pandas`, `scikit-learn`, `lightgbm`, `matplotlib`, `seaborn`, `jupyter`, `fastapi`, `uvicorn`, `streamlit`.
 
 ### 7.3. Execução dos Notebooks de Análise e Treinamento
 
@@ -308,5 +319,5 @@ Para executá-los:
 * Git / GitHub
 * FastAPI
 * Uvicorn
-* Streamlit (futuro)
-* Docker (futuro)
+* Streamlit
+* Docker (Conceitual para Futuro Deploy)
