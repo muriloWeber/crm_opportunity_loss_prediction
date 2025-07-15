@@ -15,6 +15,7 @@ subsidiary_of_options = ['Not_Subsidiary', 'Acme Corporation', 'Bubba Gump', 'Go
 series_options = ['Unknown', 'GTK', 'GTX', 'MG']
 manager_options = ['Unknown', 'Cara Losch', 'Celia Rouche', 'Dustin Brinkmann', 'Melvin Marxen', 'Rocco Neubert', 'Summer Sewald']
 regional_office_options = ['Unknown', 'Central', 'East', 'West']
+deal_stage_options = ['Unknown', 'Engaging', 'Prospecting']
 # --------------------------------------------------------
 
 st.set_page_config(page_title="Simulador de Perda de Oportunidades CRM", layout="wide")
@@ -34,6 +35,7 @@ subsidiary_of = st.sidebar.selectbox("Subsidiária de", subsidiary_of_options)
 series = st.sidebar.selectbox("Série do Produto", series_options)
 manager = st.sidebar.selectbox("Gerente", manager_options)
 regional_office = st.sidebar.selectbox("Escritório Regional", regional_office_options)
+deal_stage = st.sidebar.selectbox("Etapa do Negócio", deal_stage_options, help="Última etapa conhecida antes do fechamento/perda.")
 
 close_value = st.sidebar.number_input("Valor de Fechamento", min_value=0.0, format="%f")
 year_established = st.sidebar.number_input("Ano de Fundação da Empresa", min_value=1900, max_value=datetime.now().year, value=2000)
@@ -65,6 +67,7 @@ if st.button("Prever Probabilidade de Perda"):
         "series": None if series == "Unknown" else series,
         "manager": None if manager == "Unknown" else manager,
         "regional_office": None if regional_office == "Unknown" else regional_office,
+        "deal_stage": None if deal_stage == "Unknown" else deal_stage,
         "close_value": close_value if close_value > 0 else None,
         "year_established": year_established if year_established > 1900 and year_established < datetime.now().year else None, # Ajuste para considerar 2000 como default e passar None se for valor padrão ou inválido
         "revenue": revenue if revenue > 0 else None,

@@ -127,19 +127,19 @@ As principais etapas realizadas e encapsuladas no pipeline foram:
     * As colunas `engage_date` e `close_date` são removidas após a criação da nova feature.
 
 * **Tratamento de Valores Ausentes (Imputação no Pipeline):**
-    * Para colunas **numéricas** (`revenue`, `employees`, `year_established`, `sales_price`, `close_value`), os valores `NaN` são preenchidos utilizando a **mediana** calculada nos dados de treinamento (`SimpleImputer(strategy='median')`).
-    * Para colunas **categóricas** (`subsidiary_of`, `sector`, `office_location`, `sales_agent`, `product`, `series`, `manager`, `regional_office`), os valores `NaN` são preenchidos com um valor constante `'Unknown'` ou `'Not_Subsidiary'`, garantindo que não haja valores ausentes antes da codificação (`SimpleImputer(strategy='constant', fill_value='Unknown')`). **Importante:** A imputação para `'account'` não é feita no pipeline, pois esta coluna é removida antes da entrada do pipeline.
+    * Para colunas **numéricas** (`revenue`, `employees`, `year_established`, `sales_price`, `close_value`, `opportunity_duration_days`), os valores `NaN` são preenchidos utilizando a **mediana** calculada nos dados de treinamento (`SimpleImputer(strategy='median')`).
+    * Para colunas **categóricas** (`subsidiary_of`, `sector`, `office_location`, `sales_agent`, `product`, `series`, `manager`, `regional_office`, **`deal_stage`**), os valores `NaN` são preenchidos com um valor constante `'Unknown'` ou `'Not_Subsidiary'`, garantindo que não haja valores ausentes antes da codificação (`SimpleImputer(strategy='constant', fill_value='Unknown')`). **Importante:** A imputação para `'account'` e `opportunity_id` não é feita no pipeline, pois estas colunas são removidas antes da entrada do pipeline.
 
 * **Construção e Ajuste do Pipeline de Pré-processamento (`preprocessor_pipeline.joblib`):**
     * Um **`Pipeline` sequencial principal** foi criado para orquestrar as transformações.
     * A **primeira etapa** deste pipeline é o `DateFeatureEngineer`, que lida com as colunas de data e cria `opportunity_duration_days`.
     * A **segunda etapa** é um **`ColumnTransformer` aninhado**. Este `ColumnTransformer` é responsável por:
         * **Escalonamento de Variáveis Numéricas:** As features numéricas (agora incluindo `opportunity_duration_days`) são padronizadas utilizando **`StandardScaler`**.
-        * **Codificação de Variáveis Categóricas:** As features categóricas são convertidas em um formato numérico através de **One-Hot Encoding** (`OneHotEncoder`).
+        * **Codificação de Variáveis Categóricas:** As features categóricas (agora incluindo **`deal_stage`**) são convertidas em um formato numérico através de **One-Hot Encoding** (`OneHotEncoder`).
     * Este `preprocessor_pipeline` completo é ajustado aos dados e salvo como **`preprocessor_pipeline.joblib`** na pasta `models/`. Ele será carregado em fases posteriores para garantir que as mesmas transformações sejam aplicadas consistentemente nos dados de treino, teste e novos dados em produção.
 
 * **Remoção de Colunas Não Utilizadas no Modelo (antes do pipeline):**
-    * Colunas identificadoras únicas (`opportunity_id`, `account`) e a coluna `deal_stage` são removidas antes da entrada no pipeline, pois suas informações não são úteis diretamente para o treinamento do modelo.
+    * Colunas identificadoras únicas (`opportunity_id`, `account`) são removidas antes da entrada no pipeline, pois suas informações não são úteis diretamente para o treinamento do modelo. A coluna `deal_stage` **agora é uma feature preditiva** e não é mais removida nesta etapa.
 
 Ao final desta fase, temos um DataFrame pronto para modelagem e um pipeline de pré-processamento (`preprocessor_pipeline.joblib`) que lida de forma autônoma com engenharia de features de data e imputação de valores ausentes, garantindo consistência do início ao fim.
 
@@ -163,34 +163,34 @@ O **treinamento do pipeline completo (pré-processamento e LightGBM)**, que é o
 
 A avaliação do modelo LightGBM, **conforme detalhado no notebook `03_model_experimentation_and_detailed_evaluation.ipynb`**, revelou um desempenho **excepcional**, superando drasticamente a Regressão Logística. As métricas no **conjunto de teste** demonstraram a alta capacidade de generalização do modelo:
 
-* **Precision (Classe 'Perdido' - 1): 98%**
-* **Recall (Classe 'Perdido' - 1): 97%**
-* **F1-Score (Classe 'Perdido' - 1): 97%**
-* **Accuracy Geral: 98%**
-* **AUC-ROC Score: 0.9986**
+* **Precision (Classe 'Perdido' - 1): ~98%**
+* **Recall (Classe 'Perdido' - 1): ~97%**
+* **F1-Score (Classe 'Perdido' - 1): ~97%**
+* **Accuracy Geral: ~98%**
+* **AUC-ROC Score: ~0.9987**
 
 A **Matriz de Confusão** no conjunto de teste reforçou esses resultados:
 
 ![Matriz de Confusão LightGBM](images/cm_lightgbm.png)
 
-Isso significa que, de 975 oportunidades perdidas reais, o modelo identificou **950 Verdadeiros Positivos** (um recall de 97%). Apenas **25 Falsos Negativos** ocorreram, o que é um resultado notável para o objetivo de minimizar a perda de oportunidades.
+Isso significa que, de 975 oportunidades perdidas reais, o modelo identificou aproximadamente **946 Verdadeiros Positivos** (um recall de 97.32%). Apenas **29 Falsos Negativos** ocorreram, o que é um resultado notável para o objetivo de minimizar a perda de oportunidades.
 
 A **Curva ROC** abaixo ilustra a excelente capacidade de discriminação do modelo entre as classes 'ganha' e 'perdida', com uma área sob a curva (AUC) próxima de 1.0.
 
 ![Curva ROC do Modelo LightGBM](images/curva_roc.png)
 
-**AUC-ROC Score: 0.9986**
+**AUC-ROC Score: ~0.9987**
 
 ### 5.1. Análise de Overfitting e Validação Cruzada
 
 Para garantir a robustez e a capacidade de generalização do modelo, foi realizada uma análise detalhada de overfitting e uma **Validação Cruzada Estratificada com 5 folds**, **conforme implementado no notebook `03_model_experimentation_and_detailed_evaluation.ipynb`**.
 
-A comparação das métricas entre o **conjunto de treino** (AUC-ROC de 0.9998) e o **conjunto de teste** (AUC-ROC de 0.9986) mostrou uma diferença mínima, indicando que o modelo não está superajustado aos dados de treinamento.
+A comparação das métricas entre o **conjunto de treino** (AUC-ROC de 0.9998) e o **conjunto de teste** (AUC-ROC de 0.9987) mostrou uma diferença mínima, indicando que o modelo não está superajustado aos dados de treinamento.
 
 Os resultados da Validação Cruzada corroboraram essa conclusão, apresentando médias de desempenho altamente consistentes em todas as divisões dos dados, com **desvios padrão extremamente baixos**:
 
-* **Média Recall (Classe 'Perdido' - 1) no Teste/Validação: 0.9741 +/- 0.0046**
-* **Média AUC-ROC no Teste/Validação: 0.9986 +/- 0.0002**
+* **Média Recall (Classe 'Perdido' - 1) no Teste/Validação: 0.9732 +/- 0.0053**
+* **Média AUC-ROC no Teste/Validação: 0.9987 +/- 0.0002**
 
 A consistência e os altos valores dessas métricas confirmam que o modelo LightGBM é **altamente robusto, generalizável** e atende (e supera) as expectativas para o problema de negócio de prever a perda de oportunidades de venda.
 
@@ -212,7 +212,7 @@ Um serviço de API foi construído utilizando **FastAPI** para expor o modelo pr
 * **Endpoint de Verificação de Saúde (`/health`):** Um endpoint simples (`GET /health`) que verifica se a API está online e se o modelo foi carregado com sucesso, retornando `{"status": "ok", "message": "API está online e modelo carregado."}`.
 * **Endpoint de Predição (`/predict`):**
     * Aceita requisições `POST` com dados de uma nova oportunidade de venda em formato JSON.
-    * Utiliza o modelo Pydantic `OpportunityData` para **validar e estruturar os dados de entrada**. Este modelo é robusto e **permite que campos numéricos e categóricos sejam opcionais ou nulos**, utilizando os `SimpleImputers` configurados no pipeline para preenchimento (mediana para numéricos, 'Unknown' para categóricos). Datas nulas ou em formatos específicos também são tratadas pelo `DateFeatureEngineer`.
+    * Utiliza o modelo Pydantic `OpportunityData` para **validar e estruturar os dados de entrada**. Este modelo é robusto e **permite que campos numéricos e categóricos sejam opcionais ou nulos**, utilizando os `SimpleImputers` configurados no pipeline para preenchimento (mediana para numéricos, 'Unknown' para categóricos). Datas nulas ou em formatos específicos também são tratadas pelo `DateFeatureEngineer`. **A feature `deal_stage` agora é um campo esperado na entrada da API**, processado pelo pipeline.
     * Processa os dados de entrada usando o `full_pipeline.joblib`, que inclui a engenharia de features de data (`opportunity_duration_days`) e todas as transformações necessárias.
     * Realiza a inferência para prever a **probabilidade de a oportunidade ser perdida** (classe 1).
     * **Classificação para o Negócio:** Traduz a probabilidade numérica em uma **label interpretável** para o time de vendas (ex: "Chance MUITO ALTA de Perda", "Chance BAIXA de Perda"), baseada em limiares predefinidos a partir da distribuição das probabilidades de perda do modelo.
@@ -223,7 +223,7 @@ Um serviço de API foi construído utilizando **FastAPI** para expor o modelo pr
     3.  Navegue até a raiz do projeto no seu terminal.
     4.  Execute a API usando Uvicorn:
         ```bash
-        uvicorn src.api.app_api.api:app --reload
+        uvicorn src/api/app_api/api:app --reload
         ```
     5.  Acesse a documentação interativa da API (Swagger UI) em **http://127.0.0.1:8000/docs**. Lá, você pode testar os endpoints `/health` e `/predict`.
 
@@ -231,7 +231,7 @@ Um serviço de API foi construído utilizando **FastAPI** para expor o modelo pr
 
 Para simular a interação de um usuário de CRM com a API de predição, uma aplicação web leve foi desenvolvida utilizando **Streamlit**. Esta interface, localizada em `src/app/app_streamlit/streamlit_app.py`, possui as seguintes funcionalidades:
 
-* **Entrada de Dados Amigável:** Permite que o usuário insira os atributos de uma nova oportunidade de venda utilizando **dropdowns para campos categóricos** (reduzindo erros e garantindo consistência) e seletores de data para `Data de Engajamento` e `Previsão de Fechamento`.
+* **Entrada de Dados Amigável:** Permite que o usuário insira os atributos de uma nova oportunidade de venda utilizando **dropdowns para campos categóricos** (reduzindo erros e garantindo consistência), incluindo a **`Etapa do Negócio` (deal_stage)**, e seletores de data para `Data de Engajamento` e `Previsão de Fechamento`.
 * **Comunicação com a API:** Faz requisições para a API de predição (FastAPI), enviando os dados da oportunidade.
 * **Exibição dos Resultados:** Apresenta de forma clara e intuitiva a probabilidade de a oportunidade ser perdida e a classificação textual ("Chance MUITO ALTA de Perda", etc.), com indicadores visuais.
 * **Tratamento de Dados Ausentes:** O aplicativo permite que o usuário deixe alguns campos em branco (ou selecione 'Unknown'/'Not_Subsidiary'), confiando na lógica de imputação do pipeline de pré-processamento na API.
@@ -293,7 +293,7 @@ Certifique-se de ter o **Python 3.13.2** instalado e um ambiente virtual (`venv`
 É fundamental que os notebooks `01_data_understanding.ipynb`, **`02_feature_engineering_and_pipeline_training.ipynb`**, e `03_model_experimentation_and_detailed_evaluation.ipynb` sejam executados sequencialmente.
 
 * O **`01_data_understanding.ipynb`** gera o `df_eda_consolidated.csv` na pasta `data/processed/`.
-* O **`02_feature_engineering_and_pipeline_training.ipynb`** gera o `df_processed_for_modeling.csv` (com colunas de data para o pipeline) e o `preprocessor_pipeline.joblib` na pasta `models/`. Este notebook agora inclui a engenharia da feature `opportunity_duration_days` utilizando um **custom transformer** (`DateFeatureEngineer`) que está em `src/utils/custom_transformers.py`.
+* O **`02_feature_engineering_and_pipeline_training.ipynb`** gera o `df_processed_for_modeling.csv` (com colunas de data para o pipeline) e o `preprocessor_pipeline.joblib` na pasta `models/`. Este notebook agora inclui a engenharia da feature `opportunity_duration_days` utilizando um **custom transformer** (`DateFeatureEngineer`) e garante que a **`deal_stage` seja incluída como feature categórica** e não mais descartada.
 * O **`03_model_experimentation_and_detailed_evaluation.ipynb`** utiliza os artefatos gerados pelo `02`, realiza a experimentação e avaliação detalhada dos modelos, e então salva o `full_pipeline.joblib` na pasta `models/`.
 
 Para executá-los:

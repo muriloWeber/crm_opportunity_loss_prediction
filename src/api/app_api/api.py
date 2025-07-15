@@ -84,6 +84,7 @@ class OpportunityData(BaseModel):
     series: Optional[str] = Field(None, example="GTK", description="Série do produto. Pode ser nulo.")
     manager: Optional[str] = Field(None, example="Fernando Costa", description="Nome do gerente do agente de vendas. Pode ser nulo.")
     regional_office: Optional[str] = Field(None, example="Southeast", description="Escritório regional do agente de vendas. Pode ser nulo.")
+    deal_stage: Optional[str] = Field(None, example="Engaging", description="Última etapa do funil antes do ganho ou perda ('Engaging' ou 'Prospecting'). Pode ser nulo.")
     
     close_value: Optional[float] = Field(None, example=1500.0, description="Valor potencial de fechamento da oportunidade. Pode ser nulo.")
     year_established: Optional[int] = Field(None, example=2005, description="Ano de fundação da empresa cliente. Pode ser nulo.")
@@ -127,9 +128,10 @@ async def predict_loss(data: OpportunityData):
             input_data['close_date'] = input_data['close_date'].strftime('%Y-%m-%d')
 
         expected_columns = [
-            'sales_agent', 'product', 'engage_date', 'close_date', 'close_value',
-            'sector', 'year_established', 'revenue', 'employees', 'office_location',
-            'subsidiary_of', 'series', 'sales_price', 'manager', 'regional_office'
+            'sales_agent', 'product', 'deal_stage', 'engage_date', 'close_date',
+            'close_value', 'sector', 'year_established', 'revenue', 'employees',
+            'office_location', 'subsidiary_of', 'series', 'sales_price', 'manager',
+            'regional_office'
         ]
         
         df_input = pd.DataFrame([input_data])[expected_columns]
