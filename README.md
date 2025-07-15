@@ -198,6 +198,46 @@ A visualização a seguir ilustra a distribuição dos scores de AUC-ROC e Recal
 
 ![Box Plot das Métricas de Validação Cruzada](images/cv_metrics_boxplot.png)
 
+### **5.2. Análise de Custo-Benefício e Impacto Financeiro (Projeção Hipotética)**
+
+Para traduzir o desempenho do modelo em termos de valor de negócio, realizamos uma análise de custo-benefício baseada na matriz de confusão, projetando o impacto financeiro. Os custos e ganhos unitários utilizados são **hipotéticos** e devem ser validados com a área de negócio para uma estimativa precisa.
+
+**Valores Hipotéticos Utilizados:**
+* **Valor Médio de Oportunidade Perdida:** R$ 2.424,05 (baseado na EDA).
+* **Custo de Intervenção Desnecessária (Falso Positivo):** R$ 500,00 por oportunidade. Este é o custo de dedicar recursos a uma oportunidade que não precisava de intervenção extra.
+* **Taxa de Recuperação de Oportunidades (Verdadeiro Positivo):** 20% do valor da oportunidade perdida. Este é o percentual do valor da oportunidade que se estima ser recuperado devido à intervenção proativa do time de vendas.
+
+**Matriz de Confusão do Modelo (Conjunto de Teste):**
+
+![Matriz de Confusão LightGBM](images/cm_lightgbm.png)
+
+Onde:
+* **Verdadeiro Negativo (TN):** 1642 (Modelo prevê "Ganho", Oportunidade é "Ganha")
+* **Falso Positivo (FP):** 23 (Modelo prevê "Perda", Oportunidade é "Ganha")
+* **Falso Negativo (FN):** 29 (Modelo prevê "Ganho", Oportunidade é "Perdida")
+* **Verdadeiro Positivo (TP):** 946 (Modelo prevê "Perda", Oportunidade é "Perdida")
+
+**Cálculo do Impacto Financeiro:**
+
+| Categoria               | Real     | Previsão Modelo | Quantidade | Custo Unitário (R$) | Ganho Unitário (R$) | Custo Total (R$) | Ganho Total (R$) | Impacto Líquido (R$) |
+| :---------------------  | :------- | :-------------- | :--------- | :------------------ | :------------------ | :--------------- | :--------------- | :------------------- |
+| **Verdadeiro Negativo** | Ganha    | Ganha           | 1642       | 0,00                | 0,00                | 0,00             | 0,00             | 0,00                 |
+| **Falso Positivo**      | Ganha    | Perde           | 23         | 500,00              | -                   | 11.500,00        | -                | -11.500,00           |
+| **Falso Negativo**      | Perde    | Ganha           | 29         | 2.424,05            | -                   | 70.297,45        | -                | -70.297,45           |
+| **Verdadeiro Positivo** | Perde    | Perde           | 946        | -                   | 484,81              | -                | 458.121,26       | +458.121,26          |
+| **Total com Modelo**    |          |                 |            |                     |                     | **81.797,45**    | **458.121,26**   | **+376.323,81**      |
+
+**Conclusão de Valor para o Negócio:**
+
+* **Custo de Perdas Potenciais (Cenário sem Modelo):** Se nenhuma intervenção fosse feita, o total de oportunidades perdidas seria (FN + TP) = 29 + 946 = 975 oportunidades. O valor total dessas perdas seria 975 * R$ 2.424,05 = **R$ 2.363.448,75**.
+* **Custo Líquido com Modelo:** Ao considerar os custos de Falsos Positivos e as perdas de Falsos Negativos, e subtraindo os ganhos de Verdadeiros Positivos, o custo líquido total associado às perdas e intervenções foi de R$ 81.797,45 (Custos) - R$ 458.121,26 (Ganhos) = **-R$ 376.323,81** (ou seja, um ganho líquido).
+* **Economia Potencial Gerada pelo Modelo:** A diferença entre o custo de perdas sem o modelo e o custo líquido com o modelo é:
+    R$ 2.363.448,75 (Perdas sem modelo) - R$ 81.797,45 (Custos com modelo) = **R$ 2.281.651,30**.
+
+Esta análise hipotética sugere que, com a aplicação do modelo, a equipe comercial teria um potencial de **economia de aproximadamente R$ 2.281.651,30** neste conjunto de oportunidades, ao identificar e intervir proativamente em oportunidades que seriam perdidas e mitigar os riscos de perda.
+
+**Nota Importante:** Os valores de custo unitário e taxa de recuperação são estimativas para demonstração. Para uma análise real, é crucial que esses valores sejam definidos em colaboração com a área de negócio da TOTVS CRM.
+
 ---
 
 ## 6. Fase CRISP-DM: Deployment (Implantação)
@@ -328,7 +368,7 @@ Para executá-los:
 * Seaborn
 * Jupyter Notebook/Lab
 * Git / GitHub
-* FastAPI
-* Uvicorn
-* Streamlit
-* Docker / Docker Compose (Conceitual para Futuro Deploy)
+* **FastAPI**
+* **Uvicorn**
+* **Streamlit**
+* **Docker / Docker Compose (Conceitual para Futuro Deploy)**
