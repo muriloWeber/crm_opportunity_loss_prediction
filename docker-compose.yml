@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: src/api/app_api/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models
+    environment:
+      PYTHONPATH: /app
+    restart: unless-stopped
+
+  streamlit_app:
+    build:
+      context: .
+      dockerfile: src/app/app_streamlit/Dockerfile
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+    environment:
+      # Define a variável de ambiente API_URL para o contêiner do Streamlit
+      # O Streamlit vai ler essa variável quando iniciar
+      API_URL: http://api:8000/predict
+      PYTHONPATH: /app
+    restart: unless-stopped

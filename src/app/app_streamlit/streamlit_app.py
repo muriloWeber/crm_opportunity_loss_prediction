@@ -2,9 +2,14 @@ import streamlit as st
 import requests
 import json
 from datetime import datetime
+import os
 
-# URL da API FastAPI rodando localmente
-API_URL = "http://127.0.0.1:8000/predict"
+# Tenta obter a URL da API da variável de ambiente 'API_URL'.
+# Se a variável de ambiente NÃO for definida (como ao rodar localmente),
+# ele usa 'http://127.0.0.1:8000/predict' como valor padrão.
+# Quando rodar no Docker Compose, a variável 'API_URL' será definida,
+# e o Streamlit usará 'http://api:8000/predict'.
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8000/predict")
 
 # --- Opções para os Dropdowns ---
 sales_agent_options = ['Unknown', 'Anna Snelling', 'Boris Faz', 'Cassey Cress', 'Cecily Lampkin', 'Corliss Cosme', 'Daniell Hammack', 'Darcel Schlecht', 'Donn Cantrell', 'Elease Gluck', 'Garret Kinder', 'Gladys Colclough', 'Hayden Neloms', 'James Ascencio', 'Jonathan Berthelot', 'Kami Bicknell', 'Kary Hendrixson', 'Lajuana Vencill', 'Markita Hansen', 'Marty Freudenburg', 'Maureen Marcano', 'Moses Frase', 'Niesha Huffines', 'Reed Clapper', 'Rosalina Dieter', 'Rosie Papadopoulos', 'Versie Hillebrand', 'Vicki Laflamme', 'Violet Mclelland', 'Wilburn Farren', 'Zane Levy']
